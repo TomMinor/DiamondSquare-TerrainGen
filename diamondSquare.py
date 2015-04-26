@@ -69,7 +69,8 @@ def generate(width, height, featuresize, scale):
 		samplesize /= 2
 		scale /= 2
 
-	pixels.write("out.tif")
+	return pixels
 
 if __name__ == "__main__":
-	generate(512, 512, 32, 2.0)
+	pixels = generate(512, 512, 32, 2.0)
+	pixels.write("out.tif")
