@@ -1,4 +1,6 @@
 import random
+import math
+import copy
 
 # We intend to use this in maya, which doesn't need PIL and has trouble finding it
 # However the write function is useful for testing outside of maya so let's try and access it
@@ -10,6 +12,13 @@ except:
 	print "PIL not found, write is unavailable"
 
 # Adapted from http://www.bluh.org/code-the-diamond-square-algorithm/
+
+def linearInterp(a, b, t):
+	return a + (b - a) * t
+
+def cosineInterp(a, b, t):
+	t2 = (1-math.cos(t * math.pi))/2
+	return a * (1 - t2) + b * t2
 
 # Stores pixel data and provides methods that automatically wrap 
 # sample values for us when reading/writing pixel data
@@ -25,17 +34,29 @@ class PixelData:
 	def sample(self, x, y):
 		return self.values[(x & (self.width - 1)) + (y & (self.height - 1)) * self.width]
 
-	def write(self, filename):
-		if(pilAvailable):
-			image = Image.new("L", (self.width, self.height), "white")
+	def getInterpolatedPixels(self, interpFunction, min = 0, max = 1):
+		pixelBuffer = copy.deepcopy(self.values)
 
-			for i, pixel in enumerate(self.values):
-				self.values[i] = pixel * 255
+		for i, pixel in enumerate(pixelBuffer):
+			pixelBuffer[i] = interpFunction(min, max, pixel)
 
-			image.putdata(self.values)
-			image.save(filename)
-		else:
-			print "PIL not found, write is unavailable"
+		return pixelBuffer
+
+def write(filename, values, width, height):
+	if(pilAvailable):
+		image = Image.new("L", (width, height), "white")
+
+		# Avoid accidentally modifying the pixels we're passing in
+		pixelBuffer = copy.deepcopy(values)
+
+		# Remap for 8-bit image output
+		for i, pixel in enumerate(pixelBuffer):
+			pixelBuffer[i] = linearInterp(0, 255, pixel)
+
+		image.putdata(pixelBuffer)
+		image.save(filename)
+	else:
+		print "PIL not found, write is unavailable"
 
 def sampleSquare(pixels, x, y, size, value):
 	hs = size / 2
@@ -69,9 +90,6 @@ def DiamondSquare(pixels, stepSize, scale):
 				sampleDiamond(pixels, x + halfstep, y, 				stepSize, random.uniform(-1, 1) * scale)	
 				sampleDiamond(pixels, x, 			y + halfstep, 	stepSize, random.uniform(-1, 1) * scale)	
 
-def fractRand(v):
-	return random.uniform(-v, v)	
-
 def generate(width, height, featuresize, scale):
 	pixels = PixelData(width, height) 
 
@@ -85,5 +103,10 @@ def generate(width, height, featuresize, scale):
 	return pixels
 
 if __name__ == "__main__":
-	pixels = generate(512, 512, 32, 2.0)
-	pixels.write("out.tif")
+	width = 512
+	height = 512
+
+	pixelMap = generate(width, height, 16, 1.0)
+	
+	write("cerp.tif", pixelMap.getInterpolatedPixels(cosineInterp, 0, 2), width, height)
+	write("lerp.tif", pixelMap.getInterpolatedPixels(linearInterp, 0, 2), width, height)
