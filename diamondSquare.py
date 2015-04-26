@@ -3,6 +3,8 @@ import Image
 
 # Adapted from http://www.bluh.org/code-the-diamond-square-algorithm/
 
+# Stores pixel data and provides methods that automatically wrap 
+# sample values for us when reading/writing pixel data
 class PixelData:
 	def __init__(self, width, height):
 		self.width = width
