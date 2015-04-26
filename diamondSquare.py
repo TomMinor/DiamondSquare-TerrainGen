@@ -1,5 +1,13 @@
 import random
-import Image
+
+# We intend to use this in maya, which doesn't need PIL and has trouble finding it
+# However the write function is useful for testing outside of maya so let's try and access it
+try:
+	import Image
+	pilAvailable = True
+except:
+	pilAvailable = False
+	print "PIL not found, write is unavailable"
 
 # Adapted from http://www.bluh.org/code-the-diamond-square-algorithm/
 
@@ -18,13 +26,16 @@ class PixelData:
 		return self.values[(x & (self.width - 1)) + (y & (self.height - 1)) * self.width]
 
 	def write(self, filename):
-		image = Image.new("L", (self.width, self.height), "white")
+		if(pilAvailable):
+			image = Image.new("L", (self.width, self.height), "white")
 
-		for i, pixel in enumerate(self.values):
-			self.values[i] = pixel * 255
+			for i, pixel in enumerate(self.values):
+				self.values[i] = pixel * 255
 
-		image.putdata(self.values)
-		image.save(filename)
+			image.putdata(self.values)
+			image.save(filename)
+		else:
+			print "PIL not found, write is unavailable"
 
 def sampleSquare(pixels, x, y, size, value):
 	hs = size / 2
